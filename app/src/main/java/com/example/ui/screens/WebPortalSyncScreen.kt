@@ -3,7 +3,10 @@ package com.example.ui.screens
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.widget.Toast
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -29,9 +32,10 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Pin
+import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -53,14 +57,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.R
 import com.example.data.model.TrustedNdidEntity
+import com.example.ui.theme.AccentSuccess
 import com.example.ui.theme.SkyPrimary
 import com.example.ui.theme.SkyPrimaryContainer
 import com.example.ui.theme.SkySecondary
@@ -79,6 +89,8 @@ fun WebPortalSyncScreen(
     var newNdidInput by remember { mutableStateOf("") }
     var newNdidLabel by remember { mutableStateOf("") }
 
+    val ndsiteUrl = "https://ndsite.web.app/login?clock_id=$clockId&ndid=$ndid"
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -86,6 +98,134 @@ fun WebPortalSyncScreen(
             .padding(horizontal = 18.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // Top Hero Sync Graphic Card
+        Card(
+            shape = RoundedCornerShape(32.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.5.dp, SkyPrimaryContainer, RoundedCornerShape(32.dp))
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(160.dp)
+                        .clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.img_nd_web_sync),
+                        contentDescription = "ND Labs Web Sync Illustration",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+
+                    // Gradient overlay
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        Color.Transparent,
+                                        Color(0xFF0F172A).copy(alpha = 0.6f),
+                                        MaterialTheme.colorScheme.surface
+                                    )
+                                )
+                            )
+                    )
+
+                    // Floating ndsite status tag
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = Color(0xFF0F172A).copy(alpha = 0.85f),
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(14.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(AccentSuccess)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "ndsite.web.app/login",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
+                    }
+                }
+
+                Column(modifier = Modifier.padding(22.dp)) {
+                    Text(
+                        text = "Đồng Bộ Hóa Cổng Web ndsite",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Black,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "Liên kết ứng dụng báo thức di động với Cổng Web ndsite.web.app để nhận thông báo, tự động điền Token 50 và tắt báo thức từ xa.",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        lineHeight = 17.sp,
+                        modifier = Modifier.padding(top = 4.dp, bottom = 14.dp)
+                    )
+
+                    // 1-Click Launch Web Portal Button
+                    Button(
+                        onClick = {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(ndsiteUrl))
+                            context.startActivity(intent)
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .testTag("launch_ndsite_web_button"),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = SkyPrimary)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.OpenInBrowser, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Truy cập ndsite.web.app/login", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    OutlinedButton(
+                        onClick = {
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            val clip = ClipData.newPlainText("ND Alarm Web Link", ndsiteUrl)
+                            clipboard.setPrimaryClip(clip)
+                            Toast.makeText(context, "Đã sao chép link liên kết web!", Toast.LENGTH_SHORT).show()
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(44.dp)
+                            .testTag("copy_sync_link_button"),
+                        shape = RoundedCornerShape(22.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = SkyPrimary)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Sao Chép Liên Kết Đồng Bộ Nhanh", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                }
+            }
+        }
+
         // Clock ID & Device Pairing Card
         Card(
             shape = RoundedCornerShape(28.dp),
@@ -143,7 +283,7 @@ fun WebPortalSyncScreen(
                     ) {
                         Column {
                             Text(
-                                text = "CLOCK ID THIẾT BỊ",
+                                text = "MÃ LIÊN KẾT WEB (6 KÝ TỰ)",
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF0369A1)
@@ -152,40 +292,74 @@ fun WebPortalSyncScreen(
                                 text = clockId,
                                 fontSize = 28.sp,
                                 fontWeight = FontWeight.Black,
-                                letterSpacing = 2.sp,
-                                color = SkyPrimary
+                                fontFamily = FontFamily.Monospace,
+                                color = Color(0xFF0284C7),
+                                letterSpacing = 2.sp
                             )
                         }
 
-                        Button(
+                        IconButton(
                             onClick = {
-                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
-                                val clip = ClipData.newPlainText("ND Clock ID", clockId)
-                                clipboard?.setPrimaryClip(clip)
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                val clip = ClipData.newPlainText("Clock ID", clockId)
+                                clipboard.setPrimaryClip(clip)
                                 Toast.makeText(context, "Đã sao chép Clock ID: $clockId", Toast.LENGTH_SHORT).show()
-                            },
-                            shape = RoundedCornerShape(18.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = SkyPrimary)
+                            }
                         ) {
-                            Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Sao chép", fontSize = 12.sp)
+                            Icon(Icons.Default.ContentCopy, contentDescription = "Sao chép", tint = SkyPrimary)
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                Text(
-                    text = "🌐 Truy cập Web Portal tại: ndsite.web.app hoặc mở file Web Portal để đồng bộ và tắt báo thức từ máy tính / trình duyệt.",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    lineHeight = 16.sp
-                )
+                // Device NDID Row
+                Surface(
+                    shape = RoundedCornerShape(18.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = "ĐỊNH DANH THIẾT BỊ NÀY (NDID)",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = ndid,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = FontFamily.Monospace,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = Color(0xFFE0F2FE)
+                        ) {
+                            Text(
+                                text = "CHÍNH THỨC",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = SkyPrimary,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                            )
+                        }
+                    }
+                }
             }
         }
 
-        // Firebase Cloud Backend Integration Card
+        // Firebase Cloud Backend & Ecosystem Status Card
         Card(
             shape = RoundedCornerShape(28.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -203,12 +377,12 @@ fun WebPortalSyncScreen(
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
                         Text(
-                            text = "Firebase Cloud Backend (ndlabs-0)",
+                            text = "Hạ Tầng Cloud ndsite (ndlabs-0)",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "Firestore Enterprise & Google Sign-In Active",
+                            text = "Firestore Enterprise & Google Sign-In Hoạt Động",
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -238,14 +412,14 @@ fun WebPortalSyncScreen(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text("Database ID:", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("ndalarm", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text("ai-studio-android-ndalarm-5eeea73d-59f3-4797-be12-980675ca2cc1", fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 1)
                         }
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text("Vùng lưu trữ:", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("asia-southeast1", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text("Cổng Web Portal:", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("https://ndsite.web.app", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
                         }
                         Row(
                             modifier = Modifier.fillMaxWidth(),

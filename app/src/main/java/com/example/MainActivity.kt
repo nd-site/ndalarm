@@ -30,7 +30,7 @@ import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.CloudSync
-import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Refresh
@@ -171,9 +171,13 @@ class MainActivity : ComponentActivity() {
                                         ) {
                                             Box(
                                                 modifier = Modifier
-                                                    .size(32.dp)
+                                                    .size(36.dp)
                                                     .clip(CircleShape)
-                                                    .background(SkyPrimary),
+                                                    .background(
+                                                        androidx.compose.ui.graphics.Brush.linearGradient(
+                                                            listOf(SkyPrimary, SkySecondary)
+                                                        )
+                                                    ),
                                                 contentAlignment = Alignment.Center
                                             ) {
                                                 Text(
@@ -181,8 +185,8 @@ class MainActivity : ComponentActivity() {
                                                         ?: currentUser?.email?.take(1)
                                                         ?: "U").uppercase(),
                                                     color = Color.White,
-                                                    fontWeight = FontWeight.Bold,
-                                                    fontSize = 13.sp
+                                                    fontWeight = FontWeight.Black,
+                                                    fontSize = 14.sp
                                                 )
                                             }
 
@@ -200,15 +204,33 @@ class MainActivity : ComponentActivity() {
                                                     Spacer(modifier = Modifier.width(6.dp))
                                                     Surface(
                                                         shape = RoundedCornerShape(8.dp),
-                                                        color = SkyPrimaryContainer
+                                                        color = SkyPrimaryContainer,
+                                                        modifier = Modifier.clickable {
+                                                            val webIntent = android.content.Intent(
+                                                                android.content.Intent.ACTION_VIEW,
+                                                                android.net.Uri.parse("https://ndsite.web.app/login")
+                                                            )
+                                                            context.startActivity(webIntent)
+                                                        }
                                                     ) {
-                                                        Text(
-                                                            text = "ndlabs-0",
-                                                            fontSize = 9.sp,
-                                                            fontWeight = FontWeight.Bold,
-                                                            color = SkyPrimary,
-                                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
-                                                        )
+                                                        Row(
+                                                            verticalAlignment = Alignment.CenterVertically,
+                                                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                                                        ) {
+                                                            Box(
+                                                                modifier = Modifier
+                                                                    .size(5.dp)
+                                                                    .clip(CircleShape)
+                                                                    .background(com.example.ui.theme.AccentSuccess)
+                                                            )
+                                                            Spacer(modifier = Modifier.width(4.dp))
+                                                            Text(
+                                                                text = "ndsite.web.app",
+                                                                fontSize = 9.sp,
+                                                                fontWeight = FontWeight.Bold,
+                                                                color = SkyPrimary
+                                                            )
+                                                        }
                                                     }
                                                 }
 
@@ -254,7 +276,7 @@ class MainActivity : ComponentActivity() {
                                                 }
                                             ) {
                                                 Icon(
-                                                    imageVector = Icons.Default.ExitToApp,
+                                                    imageVector = Icons.AutoMirrored.Filled.ExitToApp,
                                                     contentDescription = "Đăng xuất",
                                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                                     modifier = Modifier.size(20.dp)
@@ -306,7 +328,7 @@ class MainActivity : ComponentActivity() {
                                                     )
                                                     Spacer(modifier = Modifier.width(4.dp))
                                                     Text(
-                                                        text = "Đăng nhập Cloud",
+                                                        text = "Đăng nhập ndsite",
                                                         fontSize = 11.sp,
                                                         fontWeight = FontWeight.Bold,
                                                         color = SkyPrimary

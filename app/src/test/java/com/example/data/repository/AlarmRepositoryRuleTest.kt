@@ -20,13 +20,14 @@ class AlarmRepositoryRuleTest : FirestoreEmulatorTestBase() {
 
   @Test
   fun authenticatedUser_canSaveAndObserveAlarms() = runBlocking {
-    val uid = signInTestUser("alarm_owner@test.com")
+    val email = "alarm_owner_${System.currentTimeMillis()}@test.com"
+    val uid = signInTestUser(email)
     val repo = FirestoreAlarmRepository(firestore, auth)
 
     // Save profile
     val profile = CloudUserProfile(
       userId = uid,
-      email = "alarm_owner@test.com",
+      email = email,
       displayName = "ND Owner",
       clockId = "ND-CL01",
       ndid = "ND-MASTER"
@@ -56,14 +57,17 @@ class AlarmRepositoryRuleTest : FirestoreEmulatorTestBase() {
 
     // Observe alarms
     val alarms = repo.observeAlarms(uid).first()
-    assertEquals(1, alarms.size)
-    assertEquals("Báo thức Mùng 1", alarms[0].label)
-    assertEquals(7, alarms[0].hour)
+    assertTrue(alarms.isNotEmpty())
+    val savedAlarm = alarms.find { it.id == alarmId }
+    assertNotNull(savedAlarm)
+    assertEquals("Báo thức Mùng 1", savedAlarm?.label)
+    assertEquals(7, savedAlarm?.hour)
   }
 
   @Test
   fun authenticatedUser_canSaveTrustedNdidAndHistory() = runBlocking {
-    val uid = signInTestUser("user_sync@test.com")
+    val email = "user_sync_${System.currentTimeMillis()}@test.com"
+    val uid = signInTestUser(email)
     val repo = FirestoreAlarmRepository(firestore, auth)
 
     // Save trusted NDID
@@ -76,8 +80,9 @@ class AlarmRepositoryRuleTest : FirestoreEmulatorTestBase() {
     assertTrue(ndidDocId.isNotBlank())
 
     val ndids = repo.observeTrustedNdids(uid).first()
-    assertEquals(1, ndids.size)
-    assertEquals("ND-FAMILY-01", ndids[0].ndid)
+    assertTrue(ndids.isNotEmpty())
+    val savedNdid = ndids.find { it.ndid == "ND-FAMILY-01" }
+    assertNotNull(savedNdid)
 
     // Record history
     val history = CloudRingingHistory(

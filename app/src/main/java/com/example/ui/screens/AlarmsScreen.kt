@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -21,14 +22,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Alarm
-import androidx.compose.material.icons.filled.AlarmOn
+import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.NightsStay
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -42,17 +42,22 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.R
 import com.example.data.model.AlarmEntity
 import com.example.ui.components.AlarmCard
+import com.example.ui.theme.AccentSuccess
+import com.example.ui.theme.NdSkyGradient
 import com.example.ui.theme.SkyPrimary
 import com.example.ui.theme.SkyPrimaryContainer
-import com.example.ui.theme.SkySecondary
 import com.example.util.LunarCalendarHelper
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
@@ -91,136 +96,204 @@ fun AlarmsScreen(
             contentPadding = PaddingValues(top = 16.dp, bottom = 96.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Hero Brand & Live Clock Header Card
+            // Hero Brand & Banner Card
             item {
                 Card(
                     shape = RoundedCornerShape(32.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(1.5.dp, SkyPrimaryContainer, RoundedCornerShape(32.dp))
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(
-                                        Color(0xFFE0F2FE),
-                                        MaterialTheme.colorScheme.surface
-                                    )
-                                )
-                            )
-                            .padding(22.dp)
-                    ) {
-                        // Brand and status row
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        // Visual Hero Banner Graphic
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(130.dp)
+                                .clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(38.dp)
-                                        .clip(CircleShape)
-                                        .background(SkyPrimary),
-                                    contentAlignment = Alignment.Center
+                            Image(
+                                painter = painterResource(id = R.drawable.img_nd_hero_banner),
+                                contentDescription = "ND Labs Hero Banner",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+
+                            // Gradient fade from banner into card content
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(
+                                        Brush.verticalGradient(
+                                            colors = listOf(
+                                                Color.Transparent,
+                                                Color(0xFF0F172A).copy(alpha = 0.5f),
+                                                MaterialTheme.colorScheme.surface
+                                            )
+                                        )
+                                    )
+                            )
+
+                            // Top Brand Floating Pills
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Surface(
+                                    shape = RoundedCornerShape(20.dp),
+                                    color = Color(0xFF0F172A).copy(alpha = 0.75f)
                                 ) {
-                                    Text(
-                                        text = "ND",
-                                        color = Color.White,
-                                        fontWeight = FontWeight.Black,
-                                        fontSize = 15.sp
-                                    )
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(8.dp)
+                                                .clip(CircleShape)
+                                                .background(AccentSuccess)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = "ndsite.web.app",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.White
+                                        )
+                                    }
                                 }
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Column {
-                                    Text(
-                                        text = "ND Alarm",
-                                        fontSize = 17.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                    Text(
-                                        text = "ND Labs Ecosystem",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color = SkyPrimary
-                                    )
+
+                                Surface(
+                                    shape = RoundedCornerShape(20.dp),
+                                    color = Color(0xFF0284C7).copy(alpha = 0.85f)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Security,
+                                            contentDescription = null,
+                                            tint = Color.White,
+                                            modifier = Modifier.size(13.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = clockId,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.White
+                                        )
+                                    }
                                 }
                             }
+                        }
 
+                        // Digital Clock & Date Section
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 22.dp, vertical = 16.dp)
+                        ) {
+                            Text(
+                                text = currentTimeString,
+                                fontSize = 44.sp,
+                                fontWeight = FontWeight.Black,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                letterSpacing = (-1).sp
+                            )
+
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            // Solar Date
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.WbSunny,
+                                    contentDescription = null,
+                                    tint = Color(0xFFF59E0B),
+                                    modifier = Modifier.size(15.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = dateFormat.format(Date()),
+                                    fontSize = 13.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+
+                            // Lunar Date
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(top = 3.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.NightsStay,
+                                    contentDescription = null,
+                                    tint = Color(0xFF2563EB),
+                                    modifier = Modifier.size(15.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = todayLunar,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color(0xFF1D4ED8)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(14.dp))
+
+                            // Quick Stats Bar
                             Surface(
-                                shape = RoundedCornerShape(20.dp),
-                                color = SkyPrimaryContainer
+                                shape = RoundedCornerShape(18.dp),
+                                color = SkyPrimaryContainer.copy(alpha = 0.6f),
+                                modifier = Modifier.fillMaxWidth()
                             ) {
                                 Row(
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Security,
-                                        contentDescription = null,
-                                        tint = SkyPrimary,
-                                        modifier = Modifier.size(13.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(
-                                        text = clockId,
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF0369A1)
-                                    )
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Default.Alarm,
+                                            contentDescription = null,
+                                            tint = SkyPrimary,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = "${alarms.count { it.isEnabled }}/${alarms.size} báo thức đang bật",
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = SkyPrimary
+                                        )
+                                    }
+
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Default.CloudDone,
+                                            contentDescription = null,
+                                            tint = AccentSuccess,
+                                            modifier = Modifier.size(15.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = "Đồng bộ ndsite",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = AccentSuccess
+                                        )
+                                    }
                                 }
                             }
-                        }
-
-                        Spacer(modifier = Modifier.height(18.dp))
-
-                        // Large Digital Clock
-                        Text(
-                            text = currentTimeString,
-                            fontSize = 46.sp,
-                            fontWeight = FontWeight.Black,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            letterSpacing = (-1).sp
-                        )
-
-                        Spacer(modifier = Modifier.height(4.dp))
-
-                        // Solar + Lunar Date
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.WbSunny,
-                                contentDescription = null,
-                                tint = Color(0xFFF59E0B),
-                                modifier = Modifier.size(15.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = dateFormat.format(Date()),
-                                fontSize = 13.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(top = 2.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.NightsStay,
-                                contentDescription = null,
-                                tint = Color(0xFF2563EB),
-                                modifier = Modifier.size(15.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = todayLunar,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = Color(0xFF1D4ED8)
-                            )
                         }
                     }
                 }
@@ -236,14 +309,14 @@ fun AlarmsScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Danh sách Báo Thức (${alarms.size})",
-                        fontSize = 16.sp,
+                        text = "Danh sách Báo Thức",
+                        fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onBackground
                     )
 
                     Surface(
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(14.dp),
                         color = MaterialTheme.colorScheme.surfaceVariant
                     ) {
                         Text(
@@ -251,7 +324,7 @@ fun AlarmsScreen(
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = SkyPrimary,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                         )
                     }
                 }
@@ -261,34 +334,47 @@ fun AlarmsScreen(
             if (alarms.isEmpty()) {
                 item {
                     Card(
-                        shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp)
+                        shape = RoundedCornerShape(28.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 16.dp)
+                            .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(28.dp))
                     ) {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(32.dp),
+                                .padding(28.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Alarm,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.outline,
-                                modifier = Modifier.size(48.dp)
-                            )
-                            Spacer(modifier = Modifier.height(12.dp))
+                            Box(
+                                modifier = Modifier
+                                    .size(72.dp)
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .border(1.dp, SkyPrimaryContainer, RoundedCornerShape(20.dp)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.img_nd_logo_badge),
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(14.dp))
                             Text(
                                 text = "Chưa có báo thức nào",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurface
                             )
-                            Spacer(modifier = Modifier.height(4.dp))
+                            Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                text = "Nhấn nút '+' bên dưới để thêm báo thức Âm/Dương lịch mới",
+                                text = "Nhấn 'Thêm Báo Thức' bên dưới để lên lịch báo thức Âm/Dương lịch đồng bộ với ndsite.web.app",
                                 fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.outline
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
                             )
                         }
                     }
@@ -307,24 +393,18 @@ fun AlarmsScreen(
         }
 
         // Floating Action Button to Add Alarm
-        FloatingActionButton(
+        ExtendedFloatingActionButton(
             onClick = onAddNewAlarm,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(bottom = 24.dp, end = 20.dp)
+                .shadow(8.dp, RoundedCornerShape(28.dp), ambientColor = SkyPrimary, spotColor = SkyPrimary)
                 .testTag("add_alarm_fab"),
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(28.dp),
             containerColor = SkyPrimary,
-            contentColor = Color.White
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Thêm báo thức")
-                Spacer(modifier = Modifier.width(6.dp))
-                Text("Thêm Báo Thức", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-            }
-        }
+            contentColor = Color.White,
+            icon = { Icon(Icons.Default.Add, contentDescription = "Thêm báo thức") },
+            text = { Text("Thêm Báo Thức", fontWeight = FontWeight.Bold, fontSize = 14.sp) }
+        )
     }
 }

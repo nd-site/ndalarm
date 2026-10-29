@@ -1,5 +1,6 @@
 package com.example.ui.theme
 
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
 // Light Blue / Soft Sky Blue ND Labs Palette
@@ -29,4 +30,17 @@ val AccentSuccess = Color(0xFF10B981)
 val AccentWarning = Color(0xFFF59E0B)
 val AccentError = Color(0xFFEF4444)
 val AccentPurple = Color(0xFF8B5CF6)
+val AccentCyan = Color(0xFF06B6D4)
 
+// ND Labs Modern Gradient Brushes
+val NdSkyGradient = Brush.linearGradient(
+    colors = listOf(Color(0xFF0284C7), Color(0xFF38BDF8))
+)
+
+val NdCardGlassGradient = Brush.verticalGradient(
+    colors = listOf(Color(0xFFF0F9FF).copy(alpha = 0.95f), Color(0xFFFFFFFF).copy(alpha = 0.98f))
+)
+
+val NdHeroOverlayGradient = Brush.verticalGradient(
+    colors = listOf(Color.Transparent, Color(0xFFF8FAFC).copy(alpha = 0.9f), Color(0xFFF8FAFC))
+)

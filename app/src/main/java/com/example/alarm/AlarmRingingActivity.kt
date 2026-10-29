@@ -232,7 +232,7 @@ fun AlarmRingingScreen(
     )
 
     val timeFormat = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
-    val dateFormat = remember { SimpleDateFormat("EEEE, dd/MM/yyyy", Locale("vi", "VN")) }
+    val dateFormat = remember { SimpleDateFormat("EEEE, dd/MM/yyyy", Locale.forLanguageTag("vi-VN")) }
     var currentTimeString by remember { mutableStateOf(timeFormat.format(Date())) }
     val lunarString = remember { LunarCalendarHelper.getTodayLunarString() }
 

@@ -22,7 +22,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -172,7 +172,7 @@ fun AlarmCard(
                         modifier = Modifier.padding(top = 2.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.VolumeUp,
+                            imageVector = androidx.compose.material.icons.Icons.AutoMirrored.Filled.VolumeUp,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(13.dp)
