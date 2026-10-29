@@ -1,0 +1,123 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isValidTimestamp(val) {
+      return val != null && (val is timestamp || val == request.time);
+    }
+
+    // UserProfile schema validation
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['userId', 'email'])
+        && isAuthenticated()
+        && data.userId is string && data.userId == request.auth.uid
+        && data.email is string && data.email.size() <= 200
+        && (!('displayName' in data) || data.displayName == null || (data.displayName is string && data.displayName.size() <= 100))
+        && (!('clockId' in data) || data.clockId == null || (data.clockId is string && data.clockId.size() <= 64))
+        && (!('ndid' in data) || data.ndid == null || (data.ndid is string && data.ndid.size() <= 64))
+        && (!('createdAt' in data) || data.createdAt == null || isValidTimestamp(data.createdAt))
+        && (!('updatedAt' in data) || data.updatedAt == null || isValidTimestamp(data.updatedAt));
+    }
+
+    // CloudAlarm schema validation
+    function isValidCloudAlarm(data) {
+      return data.keys().hasAll(['userId', 'label', 'hour', 'minute'])
+        && isAuthenticated()
+        && data.userId is string && data.userId == request.auth.uid
+        && data.label is string && data.label.size() <= 100
+        && data.hour is int && data.hour >= 0 && data.hour <= 23
+        && data.minute is int && data.minute >= 0 && data.minute <= 59
+        && (!('isEnabled' in data) || data.isEnabled is bool)
+        && (!('enabled' in data) || data.enabled is bool)
+        && (!('isLunarCalendar' in data) || data.isLunarCalendar is bool)
+        && (!('lunarCalendar' in data) || data.lunarCalendar is bool)
+        && (!('repeatRule' in data) || (data.repeatRule is string && data.repeatRule.size() <= 50))
+        && (!('antiCheatMode' in data) || (data.antiCheatMode is string && data.antiCheatMode in ['STANDARD', 'MATH', 'TOKEN_50']))
+        && (!('clockId' in data) || (data.clockId is string && data.clockId.size() <= 64))
+        && (!('status' in data) || (data.status is string && data.status in ['idle', 'armed', 'ringing', 'dismissed']))
+        && (!('createdAt' in data) || data.createdAt == null || isValidTimestamp(data.createdAt))
+        && (!('updatedAt' in data) || data.updatedAt == null || isValidTimestamp(data.updatedAt))
+        && (!('lunarDay' in data) || (data.lunarDay is int && data.lunarDay >= 1 && data.lunarDay <= 30))
+        && (!('lunarMonth' in data) || (data.lunarMonth is int && data.lunarMonth >= 0 && data.lunarMonth <= 12))
+        && (!('ringtoneType' in data) || (data.ringtoneType is string && data.ringtoneType.size() <= 50))
+        && (!('vibrate' in data) || data.vibrate is bool)
+        && (!('ndid' in data) || (data.ndid is string && data.ndid.size() <= 64));
+    }
+
+    // TrustedNdid schema validation
+    function isValidTrustedNdid(data) {
+      return data.keys().hasAll(['userId', 'ndid', 'label'])
+        && isAuthenticated()
+        && data.userId is string && data.userId == request.auth.uid
+        && data.ndid is string && data.ndid.size() <= 64
+        && data.label is string && data.label.size() <= 100
+        && (!('createdAt' in data) || data.createdAt == null || isValidTimestamp(data.createdAt));
+    }
+
+    // RingingHistory schema validation
+    function isValidRingingHistory(data) {
+      return data.keys().hasAll(['userId', 'alarmLabel', 'triggeredTime', 'unlockedTime', 'unlockMethod', 'ndid'])
+        && isAuthenticated()
+        && data.userId is string && data.userId == request.auth.uid
+        && data.alarmLabel is string && data.alarmLabel.size() <= 100
+        && data.triggeredTime is int
+        && data.unlockedTime is int
+        && data.unlockMethod is string && data.unlockMethod.size() <= 50
+        && data.ndid is string && data.ndid.size() <= 64
+        && (!('createdAt' in data) || data.createdAt == null || isValidTimestamp(data.createdAt))
+        && (!('alarmId' in data) || data.alarmId is int || data.alarmId is string);
+    }
+
+    // Match rules for users and their scoped subcollections
+    match /users/{userId} {
+      allow get, list: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUserProfile(request.resource.data);
+      allow update: if isOwner(userId)
+        && isValidUserProfile(request.resource.data)
+        && request.resource.data.userId == resource.data.userId;
+      allow delete: if isOwner(userId);
+
+      // Alarms subcollection
+      match /alarms/{alarmId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidCloudAlarm(request.resource.data);
+        allow update: if isOwner(userId)
+          && isValidCloudAlarm(request.resource.data)
+          && request.resource.data.userId == resource.data.userId;
+        allow delete: if isOwner(userId);
+      }
+
+      // Trusted NDIDs subcollection
+      match /trusted_ndids/{ndidId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidTrustedNdid(request.resource.data);
+        allow update: if isOwner(userId)
+          && isValidTrustedNdid(request.resource.data)
+          && request.resource.data.userId == resource.data.userId;
+        allow delete: if isOwner(userId);
+      }
+
+      // Ringing History subcollection
+      match /ringing_history/{historyId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidRingingHistory(request.resource.data);
+        allow update: if false; // Audit logs are append-only
+        allow delete: if isOwner(userId);
+      }
+    }
+
+    // Fallback: deny any other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

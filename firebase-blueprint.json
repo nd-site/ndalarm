@@ -1,0 +1,200 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile containing paired clock ID and preferences",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Google UID of the authenticated user"
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the user"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Display name of the user"
+        },
+        "clockId": {
+          "type": "string",
+          "description": "Primary paired clock identifier"
+        },
+        "ndid": {
+          "type": "string",
+          "description": "Master NDID of the user device"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp; clients must submit FieldValue.serverTimestamp()"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update timestamp; clients must submit FieldValue.serverTimestamp()"
+        }
+      },
+      "required": ["userId", "email", "clockId", "ndid", "createdAt", "updatedAt"]
+    },
+    "CloudAlarm": {
+      "title": "CloudAlarm",
+      "description": "Cloud-synced alarm entity for multi-device scheduling",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Google UID of the alarm owner"
+        },
+        "label": {
+          "type": "string",
+          "description": "Descriptive label for the alarm"
+        },
+        "hour": {
+          "type": "integer",
+          "description": "Hour of alarm (0-23)"
+        },
+        "minute": {
+          "type": "integer",
+          "description": "Minute of alarm (0-59)"
+        },
+        "isEnabled": {
+          "type": "boolean",
+          "description": "Whether the alarm is armed"
+        },
+        "isLunarCalendar": {
+          "type": "boolean",
+          "description": "Whether this alarm follows lunar calendar dates"
+        },
+        "repeatRule": {
+          "type": "string",
+          "description": "Recurrence pattern: ONCE, DAILY, WEEKDAYS, WEEKENDS, LUNAR_1_15, LUNAR_CUSTOM"
+        },
+        "lunarDay": {
+          "type": "integer",
+          "description": "Lunar day (1-30)"
+        },
+        "lunarMonth": {
+          "type": "integer",
+          "description": "Lunar month (0-12, 0 for any month)"
+        },
+        "ringtoneType": {
+          "type": "string",
+          "description": "Synthesizer sound profile name"
+        },
+        "vibrate": {
+          "type": "boolean",
+          "description": "Whether vibration is active"
+        },
+        "antiCheatMode": {
+          "type": "string",
+          "description": "Anti-cheat challenge mode: STANDARD, MATH, TOKEN_50"
+        },
+        "clockId": {
+          "type": "string",
+          "description": "Paired Clock ID"
+        },
+        "ndid": {
+          "type": "string",
+          "description": "Owner device NDID"
+        },
+        "status": {
+          "type": "string",
+          "description": "Current status: idle, armed, ringing, dismissed"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp; clients must submit FieldValue.serverTimestamp()"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Update timestamp; clients must submit FieldValue.serverTimestamp()"
+        }
+      },
+      "required": ["userId", "label", "hour", "minute", "isEnabled", "isLunarCalendar", "repeatRule", "antiCheatMode", "clockId", "status", "createdAt", "updatedAt"]
+    },
+    "TrustedNdid": {
+      "title": "TrustedNdid",
+      "description": "Whitelisted remote device NDID that bypasses emergency PIN challenges",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Google UID of the owner"
+        },
+        "ndid": {
+          "type": "string",
+          "description": "Trusted device NDID identifier"
+        },
+        "label": {
+          "type": "string",
+          "description": "Friendly label for the trusted device"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp; clients must submit FieldValue.serverTimestamp()"
+        }
+      },
+      "required": ["userId", "ndid", "label", "createdAt"]
+    },
+    "RingingHistory": {
+      "title": "RingingHistory",
+      "description": "Audit record of alarm rings and dismissal methods",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Google UID of the owner"
+        },
+        "alarmLabel": {
+          "type": "string",
+          "description": "Label of the triggered alarm"
+        },
+        "triggeredTime": {
+          "type": "integer",
+          "description": "Epoch timestamp in milliseconds when alarm triggered"
+        },
+        "unlockedTime": {
+          "type": "integer",
+          "description": "Epoch timestamp in milliseconds when alarm was dismissed"
+        },
+        "unlockMethod": {
+          "type": "string",
+          "description": "Authentication method used: TOKEN_50, PIN_8, MATH, WEB_PORTAL_REMOTE, MANUAL"
+        },
+        "ndid": {
+          "type": "string",
+          "description": "NDID of the unlocking device"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp; clients must submit FieldValue.serverTimestamp()"
+        }
+      },
+      "required": ["userId", "alarmLabel", "triggeredTime", "unlockedTime", "unlockMethod", "ndid", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profile with paired clock ID and preferences"
+    },
+    "/users/{userId}/alarms/{alarmId}": {
+      "schema": "CloudAlarm",
+      "description": "User alarms collection with lunar and solar rules"
+    },
+    "/users/{userId}/trusted_ndids/{ndidId}": {
+      "schema": "TrustedNdid",
+      "description": "Whitelisted device NDIDs for PIN bypass"
+    },
+    "/users/{userId}/ringing_history/{historyId}": {
+      "schema": "RingingHistory",
+      "description": "Historical audit logs of alarm ringings and dismissals"
+    }
+  }
+}

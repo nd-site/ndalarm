@@ -3,17 +3,27 @@ package com.example.ui.viewmodel
 import android.app.Application
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.NDAlarmApp
 import com.example.alarm.AlarmReceiver
 import com.example.alarm.AlarmScheduler
+import com.example.data.firebase.FirestoreAlarmRepository
+import com.example.data.firebase.model.CloudAlarm
+import com.example.data.firebase.model.CloudRingingHistory
+import com.example.data.firebase.model.CloudTrustedNdid
+import com.example.data.firebase.model.CloudUserProfile
 import com.example.data.model.AlarmEntity
 import com.example.data.model.RingingHistoryEntity
 import com.example.data.model.TrustedNdidEntity
 import com.example.data.repository.AlarmRepository
 import com.example.util.LunarCalendarHelper
 import com.example.util.SecurityHelper
+import com.google.firebase.Firebase
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.auth.auth
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -21,9 +31,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+private const val TAG = "AlarmViewModel"
+
 class AlarmViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository: AlarmRepository
+    private val firestoreRepository: FirestoreAlarmRepository
     val alarms: StateFlow<List<AlarmEntity>>
     val trustedNdids: StateFlow<List<TrustedNdidEntity>>
     val history: StateFlow<List<RingingHistoryEntity>>
@@ -43,6 +56,22 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
     private val _editingAlarm = MutableStateFlow<AlarmEntity?>(null)
     val editingAlarm: StateFlow<AlarmEntity?> = _editingAlarm.asStateFlow()
 
+    private val _currentUser = MutableStateFlow<FirebaseUser?>(Firebase.auth.currentUser)
+    val currentUser: StateFlow<FirebaseUser?> = _currentUser.asStateFlow()
+
+    private val _isCloudSyncing = MutableStateFlow(false)
+    val isCloudSyncing: StateFlow<Boolean> = _isCloudSyncing.asStateFlow()
+
+    private val _cloudSyncStatus = MutableStateFlow("Đã kết nối")
+    val cloudSyncStatus: StateFlow<String> = _cloudSyncStatus.asStateFlow()
+
+    private val authListener = FirebaseAuth.AuthStateListener { auth ->
+        _currentUser.value = auth.currentUser
+        if (auth.currentUser != null) {
+            syncWithCloud()
+        }
+    }
+
     init {
         val app = application as NDAlarmApp
         repository = AlarmRepository(
@@ -50,6 +79,7 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
             app.database.trustedNdidDao(),
             app.database.ringingHistoryDao()
         )
+        firestoreRepository = FirestoreAlarmRepository(application)
 
         alarms = repository.allAlarms.stateIn(
             scope = viewModelScope,
@@ -68,6 +98,8 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
         )
+
+        Firebase.auth.addAuthStateListener(authListener)
 
         // Seed initial default alarms & trusted NDID if empty
         viewModelScope.launch {
@@ -120,6 +152,63 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
                         label = "Người thân tin cậy (Bypass PIN)"
                     )
                 )
+            }
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        Firebase.auth.removeAuthStateListener(authListener)
+    }
+
+    fun syncWithCloud() {
+        val user = _currentUser.value ?: return
+        viewModelScope.launch {
+            _isCloudSyncing.value = true
+            _cloudSyncStatus.value = "Đang đồng bộ..."
+            try {
+                // Save user profile
+                firestoreRepository.saveUserProfile(
+                    CloudUserProfile(
+                        userId = user.uid,
+                        email = user.email ?: "",
+                        displayName = user.displayName ?: "ND User",
+                        clockId = _clockId.value,
+                        ndid = _ndid.value
+                    )
+                )
+
+                // Sync current alarms to Firestore
+                val localAlarms = repository.getEnabledAlarmsList()
+                for (alarm in localAlarms) {
+                    firestoreRepository.saveAlarm(
+                        CloudAlarm(
+                            id = alarm.id.toString(),
+                            userId = user.uid,
+                            label = alarm.label,
+                            hour = alarm.hour,
+                            minute = alarm.minute,
+                            isEnabled = alarm.isEnabled,
+                            isLunarCalendar = alarm.isLunarCalendar,
+                            repeatRule = alarm.repeatRule,
+                            lunarDay = alarm.lunarDay,
+                            lunarMonth = alarm.lunarMonth,
+                            ringtoneType = alarm.ringtoneType,
+                            vibrate = alarm.vibrate,
+                            antiCheatMode = alarm.antiCheatMode,
+                            clockId = alarm.clockId,
+                            ndid = alarm.ndid,
+                            status = alarm.status
+                        )
+                    )
+                }
+
+                _cloudSyncStatus.value = "Đã đồng bộ Cloud (ndlabs-0)"
+            } catch (e: Exception) {
+                Log.e(TAG, "Đồng bộ Firestore thất bại", e)
+                _cloudSyncStatus.value = "Lỗi đồng bộ: ${e.localizedMessage ?: "Thử lại sau"}"
+            } finally {
+                _isCloudSyncing.value = false
             }
         }
     }
@@ -184,6 +273,36 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
 
             val nextMillis = AlarmScheduler.scheduleAlarm(getApplication(), alarm.copy(id = id))
             repository.updateAlarm(alarm.copy(id = id, nextTriggerMillis = nextMillis))
+
+            // Sync to Firestore if authenticated
+            val user = _currentUser.value
+            if (user != null) {
+                try {
+                    firestoreRepository.saveAlarm(
+                        CloudAlarm(
+                            id = id.toString(),
+                            userId = user.uid,
+                            label = alarm.label,
+                            hour = alarm.hour,
+                            minute = alarm.minute,
+                            isEnabled = alarm.isEnabled,
+                            isLunarCalendar = alarm.isLunarCalendar,
+                            repeatRule = alarm.repeatRule,
+                            lunarDay = alarm.lunarDay,
+                            lunarMonth = alarm.lunarMonth,
+                            ringtoneType = alarm.ringtoneType,
+                            vibrate = alarm.vibrate,
+                            antiCheatMode = alarm.antiCheatMode,
+                            clockId = _clockId.value,
+                            ndid = _ndid.value,
+                            status = "armed"
+                        )
+                    )
+                } catch (e: Exception) {
+                    Log.e(TAG, "Không thể lưu alarm lên Firestore", e)
+                }
+            }
+
             closeAddAlarmDialog()
         }
     }
@@ -191,12 +310,43 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
     fun toggleAlarm(alarm: AlarmEntity) {
         viewModelScope.launch {
             val updated = alarm.copy(isEnabled = !alarm.isEnabled)
-            if (updated.isEnabled) {
-                val nextMillis = AlarmScheduler.scheduleAlarm(getApplication(), updated)
-                repository.updateAlarm(updated.copy(nextTriggerMillis = nextMillis, status = "armed"))
+            val nextMillis = if (updated.isEnabled) {
+                AlarmScheduler.scheduleAlarm(getApplication(), updated)
             } else {
                 AlarmScheduler.cancelAlarm(getApplication(), alarm.id)
-                repository.updateAlarm(updated.copy(nextTriggerMillis = 0L, status = "idle"))
+                0L
+            }
+            val status = if (updated.isEnabled) "armed" else "idle"
+            val finalAlarm = updated.copy(nextTriggerMillis = nextMillis, status = status)
+            repository.updateAlarm(finalAlarm)
+
+            // Update in Firestore if authenticated
+            val user = _currentUser.value
+            if (user != null) {
+                try {
+                    firestoreRepository.saveAlarm(
+                        CloudAlarm(
+                            id = alarm.id.toString(),
+                            userId = user.uid,
+                            label = finalAlarm.label,
+                            hour = finalAlarm.hour,
+                            minute = finalAlarm.minute,
+                            isEnabled = finalAlarm.isEnabled,
+                            isLunarCalendar = finalAlarm.isLunarCalendar,
+                            repeatRule = finalAlarm.repeatRule,
+                            lunarDay = finalAlarm.lunarDay,
+                            lunarMonth = finalAlarm.lunarMonth,
+                            ringtoneType = finalAlarm.ringtoneType,
+                            vibrate = finalAlarm.vibrate,
+                            antiCheatMode = finalAlarm.antiCheatMode,
+                            clockId = finalAlarm.clockId,
+                            ndid = finalAlarm.ndid,
+                            status = status
+                        )
+                    )
+                } catch (e: Exception) {
+                    Log.e(TAG, "Lỗi cập nhật alarm trên Firestore", e)
+                }
             }
         }
     }
@@ -205,6 +355,16 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             AlarmScheduler.cancelAlarm(getApplication(), alarm.id)
             repository.deleteAlarm(alarm)
+
+            // Delete in Firestore if authenticated
+            val user = _currentUser.value
+            if (user != null) {
+                try {
+                    firestoreRepository.deleteAlarm(alarm.id.toString())
+                } catch (e: Exception) {
+                    Log.e(TAG, "Lỗi xóa alarm trên Firestore", e)
+                }
+            }
         }
     }
 
@@ -228,18 +388,42 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
     fun addTrustedNdid(ndid: String, label: String) {
         if (ndid.isBlank()) return
         viewModelScope.launch {
-            repository.insertTrustedNdid(
-                TrustedNdidEntity(
-                    ndid = ndid.trim().uppercase(),
-                    label = label.ifBlank { "Thiết bị tin cậy" }
-                )
+            val entity = TrustedNdidEntity(
+                ndid = ndid.trim().uppercase(),
+                label = label.ifBlank { "Thiết bị tin cậy" }
             )
+            val localId = repository.insertTrustedNdid(entity)
+
+            val user = _currentUser.value
+            if (user != null) {
+                try {
+                    firestoreRepository.saveTrustedNdid(
+                        CloudTrustedNdid(
+                            id = localId.toString(),
+                            userId = user.uid,
+                            ndid = entity.ndid,
+                            label = entity.label
+                        )
+                    )
+                } catch (e: Exception) {
+                    Log.e(TAG, "Lỗi thêm trusted NDID trên Firestore", e)
+                }
+            }
         }
     }
 
     fun removeTrustedNdid(trusted: TrustedNdidEntity) {
         viewModelScope.launch {
             repository.deleteTrustedNdid(trusted)
+
+            val user = _currentUser.value
+            if (user != null) {
+                try {
+                    firestoreRepository.deleteTrustedNdid(trusted.id.toString())
+                } catch (e: Exception) {
+                    Log.e(TAG, "Lỗi xóa trusted NDID trên Firestore", e)
+                }
+            }
         }
     }
 
@@ -249,7 +433,50 @@ class AlarmViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun recordHistory(historyItem: RingingHistoryEntity) {
+        viewModelScope.launch {
+            val localId = repository.logRingingHistory(historyItem)
+            val user = _currentUser.value
+            if (user != null) {
+                try {
+                    firestoreRepository.recordHistory(
+                        CloudRingingHistory(
+                            id = localId.toString(),
+                            userId = user.uid,
+                            alarmId = historyItem.alarmId,
+                            alarmLabel = historyItem.alarmLabel,
+                            triggeredTime = historyItem.triggeredTime,
+                            unlockedTime = historyItem.unlockedTime,
+                            unlockMethod = historyItem.unlockMethod,
+                            ndid = historyItem.unlockedByNdid
+                        )
+                    )
+                } catch (e: Exception) {
+                    Log.e(TAG, "Lỗi lưu history trên Firestore", e)
+                }
+            }
+        }
+    }
+
     fun regenerateClockId() {
         _clockId.value = SecurityHelper.generateClockId()
+        val user = _currentUser.value
+        if (user != null) {
+            viewModelScope.launch {
+                try {
+                    firestoreRepository.saveUserProfile(
+                        CloudUserProfile(
+                            userId = user.uid,
+                            email = user.email ?: "",
+                            displayName = user.displayName ?: "ND User",
+                            clockId = _clockId.value,
+                            ndid = _ndid.value
+                        )
+                    )
+                } catch (e: Exception) {
+                    Log.e(TAG, "Lỗi cập nhật clockId trên Firestore", e)
+                }
+            }
+        }
     }
 }
