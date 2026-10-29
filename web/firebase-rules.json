@@ -1,0 +1,37 @@
+{
+  "rules": {
+    "firestore": {
+      "rules_version": "2",
+      "service": "cloud.firestore",
+      "match /databases/{database}/documents": {
+        "match /clocks/{clockId}": {
+          "allow read: if true;",
+          "allow write: if request.auth != null && (
+            resource.data.ownerNdid == request.auth.uid ||
+            request.auth.uid in resource.data.trustedNdids ||
+            request.resource.data.status == 'unlocked'
+          );"
+        },
+        "match /alarms/{alarmId}": {
+          "allow read, write: if request.auth != null;"
+        },
+        "match /ringing_logs/{logId}": {
+          "allow read, create: if request.auth != null;"
+        }
+      }
+    },
+    "database": {
+      "rules": {
+        "clocks": {
+          "$clockId": {
+            ".read": true,
+            ".write": "auth != null",
+            "status": {
+              ".write": true
+            }
+          }
+        }
+      }
+    }
+  }
+}

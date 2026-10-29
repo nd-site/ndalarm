@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ND Alarm Web Portal — Hệ sinh thái ND Labs</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Firebase SDK v10 Compat -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+</head>
+<body>
+  <div class="clouds-backdrop"></div>
+
+  <div class="app-container">
+    <!-- Header -->
+    <header class="nd-header">
+      <div class="brand-pill">
+        <div class="brand-logo">ND</div>
+        <div class="brand-info">
+          <h1>ND Alarm</h1>
+          <span class="subtext">Ecosystem by ND Labs</span>
+        </div>
+      </div>
+      <div class="portal-badge">
+        <span class="pulse-dot"></span>
+        <span id="sync-status">Web Portal Live</span>
+      </div>
+    </header>
+
+    <!-- Main Content Grid -->
+    <main class="grid-layout">
+      <!-- Left Column: Clock ID & Credential Management -->
+      <section class="card pill-card">
+        <div class="card-header">
+          <div class="icon-circle">🔗</div>
+          <div>
+            <h2>Liên kết Mã Đồng Hồ (Clock ID)</h2>
+            <p class="desc">Đồng bộ với ứng dụng ND Alarm trên điện thoại</p>
+          </div>
+        </div>
+
+        <form id="link-form" class="pill-form" onsubmit="handleLinkClock(event)">
+          <div class="form-group">
+            <label for="clock-id-input">Mã Clock ID (6 ký tự):</label>
+            <div class="input-pill-wrapper">
+              <input type="text" id="clock-id-input" maxlength="10" placeholder="VD: ND-8821 hoặc CL-992" required value="ND-CL01">
+              <button type="submit" class="btn-pill btn-primary">Liên kết</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="my-ndid-input">NDID của bạn (Người dùng hiện tại):</label>
+            <input type="text" id="my-ndid-input" class="input-pill" placeholder="VD: ND-USER-01" value="ND-USER-01">
+          </div>
+        </form>
+
+        <div class="divider"></div>
+
+        <!-- Credential Management API Section -->
+        <div class="credentials-box">
+          <div class="cred-header">
+            <span class="cred-icon">🔐</span>
+            <div>
+              <h3>Credential Management API</h3>
+              <p class="cred-sub">Lưu & gợi ý mật khẩu 50 ký tự vào Trình duyệt</p>
+            </div>
+          </div>
+          
+          <div class="token-display">
+            <label>Mật khẩu 50 ký tự hiện tại:</label>
+            <div class="token-code-wrapper">
+              <code id="display-token-50">ND$k9x#P2vL8*zY4@wR1!bT5^hJ9~cF3&gK6_dE0+aU4-sM7=8q2zX</code>
+              <button type="button" class="btn-copy" onclick="copyToken50()">Sao chép</button>
+            </div>
+          </div>
+
+          <div class="button-row">
+            <button type="button" class="btn-pill btn-secondary" onclick="saveCredentialsToBrowser()">
+              💾 Lưu vào Chrome / Safari Keychain
+            </button>
+            <button type="button" class="btn-pill btn-outline" onclick="generateNewToken50()">
+              ⚡ Tạo Token 50 mới
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Column: Live Clock Status & Turn Off Action -->
+      <section class="card pill-card">
+        <div class="card-header">
+          <div class="icon-circle">⏰</div>
+          <div>
+            <h2>Trạng Thái Đồng Hồ Thời Gian Thực</h2>
+            <p class="desc">Tự động kích hoạt khi có báo thức reo</p>
+          </div>
+        </div>
+
+        <div id="clock-status-box" class="status-box status-idle">
+          <div class="status-top">
+            <span class="status-indicator"></span>
+            <span id="clock-state-text" class="state-badge">SẴN SÀNG (IDLE)</span>
+          </div>
+
+          <div class="digital-clock-display">
+            <div id="live-time" class="time-text">07:00</div>
+            <div id="live-alarm-label" class="alarm-title">Báo thức ND Labs</div>
+            <div id="live-calendar-date" class="calendar-sub">Dương lịch: Hôm nay | Âm lịch: 15 Rằm</div>
+          </div>
+
+          <div class="status-details">
+            <div class="detail-row">
+              <span>Mã Clock ID:</span>
+              <strong id="active-clock-id">ND-CL01</strong>
+            </div>
+            <div class="detail-row">
+              <span>Chủ sở hữu NDID:</span>
+              <strong id="active-owner-ndid">ND-MASTER</strong>
+            </div>
+            <div class="detail-row">
+              <span>Mã PIN Khẩn cấp 8 số:</span>
+              <strong id="active-pin-8" class="pin-highlight">49201847</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="action-triggers">
+          <button type="button" class="btn-pill btn-danger full-width" onclick="simulateAlarmRinging()">
+            🔔 Giả lập Báo thức Reo (Ringing State)
+          </button>
+          <button type="button" class="btn-pill btn-primary full-width" onclick="openTurnOffModal()">
+            🔓 Mở Hộp thoại Tắt Báo Thức
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <!-- Trusted NDID Manager Section -->
+    <section class="card pill-card margin-top">
+      <div class="card-header">
+        <div class="icon-circle">🛡️</div>
+        <div>
+          <h2>Danh Sách Trusted NDID (Bỏ qua mã PIN 8 số)</h2>
+          <p class="desc">Người dùng trong danh sách tin cậy có thể tắt báo thức chỉ bằng mật khẩu 50 ký tự</p>
+        </div>
+      </div>
+
+      <div class="trusted-controls">
+        <input type="text" id="new-trusted-ndid" class="input-pill" placeholder="Nhập NDID người thân (VD: ND-FAMILY-02)">
+        <button type="button" class="btn-pill btn-primary" onclick="addTrustedNdid()">Thêm NDID</button>
+      </div>
+
+      <div class="trusted-list-container">
+        <ul id="trusted-ndid-list" class="pill-list">
+          <li class="pill-list-item">
+            <div>
+              <strong>ND-MASTER</strong>
+              <span class="badge-trusted">Chủ thiết bị (Bypass PIN)</span>
+            </div>
+            <span class="status-active">Đã cấp phép</span>
+          </li>
+          <li class="pill-list-item">
+            <div>
+              <strong>ND-FAMILY-01</strong>
+              <span class="badge-trusted">Người thân tin cậy</span>
+            </div>
+            <button class="btn-remove" onclick="removeTrustedNdid(this)">Xóa</button>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="nd-footer">
+      <p>ND Alarm © 2026 — Phát triển bởi <a href="https://ndsite.web.app" target="_blank">ND Labs (ndsite.web.app)</a></p>
+    </footer>
+  </div>
+
+  <!-- POP-UP MODAL: Tắt Báo Thức (Auto-triggered when status = "ringing") -->
+  <div id="turn-off-modal" class="modal-backdrop hidden">
+    <div class="modal-card pill-card modal-animated">
+      <div class="modal-header">
+        <div class="alarm-alert-icon">🔔</div>
+        <div>
+          <h2 class="alert-title">BÁO THỨC ĐANG REO!</h2>
+          <p class="modal-sub">Clock ID: <span id="modal-clock-id">ND-CL01</span></p>
+        </div>
+      </div>
+
+      <div id="modal-warning" class="modal-notice">
+        Xác thực bảo mật để gửi tín hiệu tắt chuông tới ứng dụng di động.
+      </div>
+
+      <form id="turn-off-form" onsubmit="submitTurnOffAlarm(event)">
+        <!-- 50-Character Password with Autofill Support -->
+        <div class="form-group">
+          <label for="autofill-token-50">Mật khẩu 50 ký tự (Trình duyệt tự động điền):</label>
+          <input 
+            type="password" 
+            id="autofill-token-50" 
+            name="password" 
+            autocomplete="current-password" 
+            class="input-pill" 
+            placeholder="Mật khẩu 50 ký tự bảo mật..." 
+            required>
+        </div>
+
+        <!-- Cross-device PIN check (Visible if NOT trusted NDID) -->
+        <div id="pin-challenge-block" class="form-group hidden">
+          <label for="input-pin-8">Mã PIN 8 số hiển thị trên màn hình App:</label>
+          <input 
+            type="text" 
+            id="input-pin-8" 
+            maxlength="8" 
+            class="input-pill" 
+            placeholder="Nhập 8 số PIN hiển thị...">
+          <small class="hint-text">⚠️ Bạn đang tắt chéo từ NDID khác, cần xác thực thêm PIN 8 số.</small>
+        </div>
+
+        <div id="modal-error-msg" class="error-pill hidden"></div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-pill btn-outline" onclick="closeTurnOffModal()">Hủy</button>
+          <button type="submit" class="btn-pill btn-primary btn-large">
+            ✅ Xác Thực & Tắt Chuông Ngay
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
